@@ -14,7 +14,7 @@ app.post('/gemini', async (req, res) => {
     return res.status(400).json({ error: 'API key not configured' });
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
   console.log('Sending request to:', url); // ЛОГИРОВАНИЕ
 
