@@ -1,5 +1,5 @@
 const express = require('express');
-const axios = require('axios');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -7,21 +7,26 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Initialize the Google Generative AI client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 app.post('/gemini', async (req, res) => {
   const { prompt } = req.body;
-  const key = process.env.GEMINI_API_KEY;
-  const endpoint = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${key}`;
   try {
-    const response = await axios.post(endpoint, {
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    res.json({
+      candidates: [{
+        content: {
+          parts: [{
+            text: text
+          }]
+        }
       }]
-    }, {
-      headers: { 'Content-Type': 'application/json' }
     });
-    res.json(response.data);
   } catch (e) {
     res.status(500).json({ error: e.message, detail: e?.response?.data });
   }
