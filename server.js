@@ -1,5 +1,4 @@
 const express = require('express');
-const axios = require('axios');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -9,23 +8,40 @@ app.use(express.json());
 
 app.post('/gemini', async (req, res) => {
   const { prompt } = req.body;
-  const key = process.env.GEMINI_API_KEY;
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return res.status(400).json({ error: 'API key not configured' });
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+  console.log('Sending request to:', url); // ЛОГИРОВАНИЕ
+
   try {
-    const response = await axios.post(endpoint, {
-      contents: [{
-        parts: [{
-          text: prompt
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
         }]
-      }]
-    }, {
-      headers: { 'Content-Type': 'application/json' }
+      })
     });
-    res.json(response.data);
-  } catch (e) {
-    res.status(500).json({ error: e.message, detail: e?.response?.data });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Gemini API Error:', errorData);
+      return res.status(500).json({ error: errorData });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Server Error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-const port = process.env.PORT || 3001;
-app.listen(port, () => console.log(`Proxy listening on ${port}`));
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Proxy on port ${PORT}`));
