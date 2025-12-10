@@ -14,6 +14,10 @@ if (!apiKey) {
 }
 const genAI = new GoogleGenerativeAI(apiKey);
 
+// The SDK defaults to the 'v1beta' API version, but 'gemini-1.5-flash' is available in 'v1'.
+// We will get the model from the 'v1' API version.
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"}, { apiVersion: 'v1' });
+
 app.post('/gemini', async (req, res) => {
 const { prompt } = req.body;
 
@@ -22,7 +26,6 @@ return res.status(400).json({ error: 'Prompt is required' });
 }
 
 try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
