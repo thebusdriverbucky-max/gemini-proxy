@@ -12,11 +12,9 @@ if (!apiKey) {
   console.error("API key not configured. Please set GEMINI_API_KEY in your .env file");
   process.exit(1); // Выход, если ключ не настроен
 }
-const genAI = new GoogleGenerativeAI(apiKey);
-
-// The SDK defaults to the 'v1beta' API version, but 'gemini-1.5-flash' is available in 'v1'.
-// We will get the model from the 'v1' API version.
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"}, { apiVersion: 'v1' });
+// Инициализируем SDK сразу с нужной версией API
+const genAI = new GoogleGenerativeAI(apiKey, { apiVersion: 'v1' });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
 
 app.post('/gemini', async (req, res) => {
 const { prompt } = req.body;
