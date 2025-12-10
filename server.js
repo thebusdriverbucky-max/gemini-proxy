@@ -13,21 +13,12 @@ if (!apiKey) {
   process.exit(1); // Выход, если ключ не настроен
 }
 // Инициализируем SDK сразу с нужной версией API
-const genAI = new GoogleGenerativeAI(apiKey, { apiVersion: 'v1' });
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
+const genAI = new GoogleGenerativeAI(apiKey);
 
 app.post('/gemini', async (req, res) => {
-const { prompt } = req.body;
-
-if (!prompt) {
-return res.status(400).json({ error: 'Prompt is required' });
-}
-
 try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-res.json({ text });
+    const result = await genAI.listModels();
+    res.json(result.models);
 } catch (error) {
 console.error('Gemini API Error:', error);
 res.status(500).json({ error: error.message });
