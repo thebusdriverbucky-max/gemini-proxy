@@ -1,49 +1,51 @@
 const express = require('express');
 const cors = require('cors');
+const Groq = require('groq-sdk');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const deepSeekApiKey = process.env.DEEPSEEK_API_KEY;
-if (!deepSeekApiKey) {
-  console.error("DeepSeek API key not configured. Please set DEEPSEEK_API_KEY in your .env file");
-  process.exit(1);
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY
+});
+
+const mainModel = 'qwen/qwen3-32b';
+const fallbackModel = 'llama-3.3-70b-versatile';
+
+async function getGroqChatCompletion(prompt, model) {
+    return groq.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: model
+    });
 }
 
 app.post('/gemini', async (req, res) => {
-  const { prompt } = req.body;
+    const { prompt } = req.body;
 
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
-  }
-
-  try {
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${deepSeekApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('DeepSeek API Error:', errorData);
-      return res.status(response.status).json({ error: errorData });
+    if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error('Server Error:', error);
-    res.status(500).json({ error: error.message });
-  }
+    try {
+        const chatCompletion = await getGroqChatCompletion(prompt, mainModel);
+        res.json(chatCompletion);
+    } catch (error) {
+        if (error.status === 429) {
+            console.warn(`Rate limit exceeded for ${mainModel}. Switching to fallback model ${fallbackModel}.`);
+            try {
+                const chatCompletion = await getGroqChatCompletion(prompt, fallbackModel);
+                res.json(chatCompletion);
+            } catch (fallbackError) {
+                console.error('Fallback model error:', fallbackError);
+                res.status(500).json({ error: fallbackError.message });
+            }
+        } else {
+            console.error('Groq API error:', error);
+            res.status(500).json({ error: error.message });
+        }
+    }
 });
 
 const PORT = process.env.PORT || 3001;
