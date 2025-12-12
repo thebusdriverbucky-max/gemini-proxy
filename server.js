@@ -11,8 +11,8 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-const mainModel = 'qwen/qwen3-32b';
-const fallbackModel = 'llama-3.3-70b-versatile';
+const mainModel = 'llama-3.3-70b-versatile';
+const fallbackModel = 'qwen/qwen3-32b';
 
 async function getGroqChatCompletion(prompt, model) {
     return groq.chat.completions.create({
@@ -32,18 +32,13 @@ app.post('/gemini', async (req, res) => {
         const chatCompletion = await getGroqChatCompletion(prompt, mainModel);
         res.json(chatCompletion);
     } catch (error) {
-        if (error.status === 429) {
-            console.warn(`Rate limit exceeded for ${mainModel}. Switching to fallback model ${fallbackModel}.`);
-            try {
-                const chatCompletion = await getGroqChatCompletion(prompt, fallbackModel);
-                res.json(chatCompletion);
-            } catch (fallbackError) {
-                console.error('Fallback model error:', fallbackError);
-                res.status(500).json({ error: fallbackError.message });
-            }
-        } else {
-            console.error('Groq API error:', error);
-            res.status(500).json({ error: error.message });
+        console.error('Groq API error:', error);
+        try {
+            const chatCompletion = await getGroqChatCompletion(prompt, fallbackModel);
+            res.json(chatCompletion);
+        } catch (fallbackError) {
+            console.error('Fallback model error:', fallbackError);
+            res.status(500).json({ error: fallbackError.message });
         }
     }
 });
